@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全通路 AI 優惠戰情室 2.0</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; }
+        
+        /* 購物車 AI 魔術師區塊 */
+        .ai-cart-section { max-width: 1200px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: black; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .ai-cart-section h3 { margin-top: 0; font-size: 1.2rem; }
+        .ai-input-group { display: flex; gap: 10px; }
+        .ai-input-group input { flex-grow: 1; padding: 10px; border: none; border-radius: 5px; font-size: 1rem; }
+        .btn-magic { background-color: #f1c40f; color: #2c3e50; border: none; border-radius: 5px; padding: 10px 20px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-magic:hover { background-color: #f39c12; }
+        #ai-cart-result { margin-top: 15px; display: none; }
+
+        /* 篩選器 */
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 1200px; margin: 20px auto; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .filter-bar select, .filter-bar input, .filter-bar button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        .btn-update { background-color: #3498db; color: white; cursor: pointer; border: none; font-weight: bold; }
+        .btn-update:hover { background-color: #2980b9; }
+        
+        #loading { text-align: center; font-size: 1.1rem; color: #d35400; font-weight: bold; margin: 20px 0; display: none; }
+        
+        /* 卡片網格 */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 200px; object-fit: cover; border-bottom: 1px solid #eee;}
+        .card-content { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+        .tags-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;}
+        .store-tag { padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: white; }
+        .tag-family { background-color: #00A859; } .tag-seven { background-color: #F37021; } .tag-hilife { background-color: #E60044; } .tag-ok { background-color: #d32f2f; } .tag-pxmart { background-color: #1976d2; }
+        .category-tag { background-color: #8e44ad; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: white; }
+        .card-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 10px; line-height: 1.3; }
+        .expiry-date { font-size: 0.85rem; color: #7f8c8d; margin-bottom: 15px; }
+        
+        .action-row { display: flex; gap: 10px; margin-top: auto; }
+        .btn { flex: 1; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; text-align: center;}
+        .btn-fav { background-color: #f1f2f6; color: #ff4757; } .btn-fav.active { background-color: #ff4757; color: white; }
+        .btn-ai { background-color: #2c3e50; color: white; }
+        .ai-result-box { display: none; padding: 15px; margin-top: 10px; font-size: 0.9rem; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px; color: #2c3e50; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <h1>🛒 省時多 2.0</h1>
+
+    <div class="ai-cart-section">
+        <h3>✨ AI 跨通路採買魔術師</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 10px;">告訴 AI 你想買什麼，讓它幫你比對當下所有超商優惠，找出最省錢的跨店路線！</p>
+        <div class="ai-input-group">
+            <input type="text" id="cartInput" placeholder="例如：我想買兩瓶鮮奶、咖啡豆跟週末晚上喝的啤酒">
+            <button class="btn-magic" onclick="optimizeCart()">🪄 一鍵規劃</button>
+        </div>
+        <div id="ai-cart-result"></div>
+    </div>
+
+    <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="搜尋商品關鍵字..." oninput="filterCards()">
+        <select id="storeFilter" onchange="filterCards()">
+            <option value="">所有通路</option>
+            <option value="7-11">7-11</option>
+            <option value="全家">全家</option>
+            <option value="萊爾富">萊爾富</option>
+            <option value="OK超商">OK超商</option>
+            <option value="全聯">全聯</option>
+        </select>
+        <select id="categoryFilter" onchange="filterCards()">
+            <option value="">所有分類</option>
+            <option value="咖啡">咖啡</option>
+            <option value="冰品">冰品</option>
+            <option value="飲料">飲料</option>
+            <option value="乳品">乳品</option>
+            <option value="啤酒">啤酒</option>
+            <option value="其他">其他</option>
+        </select>
+        <select id="favFilter" onchange="filterCards()">
+            <option value="">所有商品狀態</option>
+            <option value="1">❤️ 只看我的收藏</option>
+        </select>
+        <button class="btn-update" onclick="triggerScrape()">🔄 啟動背景爬蟲更新</button>
+    </div>
+
+    <div id="loading">🚀 系統正在背景啟動無頭瀏覽器爬取最新資料，請稍候...</div>
+    <div id="events-container" class="grid-container"></div>
+
+    <script>
+        let globalData = [];
+        
+        function getStoreClass(storeName) {
+            const map = {'全家':'tag-family', '7-11':'tag-seven', '萊爾富':'tag-hilife', 'OK超商':'tag-ok', '全聯':'tag-pxmart'};
+            return map[storeName] || 'tag-family';
+        }
+
+        window.onload = fetchPromotions;
+
+        function fetchPromotions() {
+            fetch('/api/promotions').then(res => res.json()).then(data => { globalData = data; renderCards(data); });
+        }
+
+        function triggerScrape() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('events-container').innerHTML = '';
+            fetch('/api/update').then(() => fetchPromotions()).then(() => document.getElementById('loading').style.display = 'none')
+            .catch(() => { alert("爬蟲發生錯誤，請檢查後端終端機"); document.getElementById('loading').style.display = 'none'; });
+        }
+
+        function optimizeCart() {
+            const query = document.getElementById('cartInput').value;
+            const resultBox = document.getElementById('ai-cart-result');
+            if (!query) { alert("請先輸入你想買的東西！"); return; }
+            
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '🤖 大語言模型正在交叉比對全網數據，請稍候...';
+
+            fetch('/api/optimize-cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            }).then(res => res.json()).then(data => {
+                resultBox.innerHTML = data.result;
+            }).catch(() => {
+                resultBox.innerHTML = '連線異常，請檢查後端日誌。';
+            });
+        }
+
+        function renderCards(data) {
+            const container = document.getElementById('events-container'); container.innerHTML = '';
+            if (data.length === 0) { container.innerHTML = '<p style="text-align:center; width:100%;">目前沒有符合條件的資料！</p>'; return; }
+            data.forEach(item => {
+                const tagClass = getStoreClass(item.store);
+                const favActive = item.is_favorite === 1 ? 'active' : ''; 
+                const favText = item.is_favorite === 1 ? '❤️ 已收藏' : '🤍 收藏';
+                
+                // 💡 安全處理：將標題的雙引號、單引號轉換，防止破壞 HTML 屬性與 JS 斷句
+                const safeTitle = item.title.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="card">
+                        <a href="${item.link}" target="_blank"><img src="${item.img_url}" onerror="this.src='[https://via.placeholder.com/300x200?text=Image+Not+Found](https://via.placeholder.com/300x200?text=Image+Not+Found)'"></a>
+                        <div class="card-content">
+                            <div class="tags-row"><span class="store-tag ${tagClass}">${item.store}</span><span class="category-tag">${item.category}</span></div>
+                            <div class="card-title">${item.title}</div><div class="expiry-date">活動至: ${item.expiry_date}</div>
+                            <div class="action-row">
+                                <button class="btn btn-fav ${favActive}" data-id="${item.id}" data-store="${item.store}" data-title="${safeTitle}" onclick="toggleFav(this)">${favText}</button>
+                                <button class="btn btn-ai" data-id="${item.id}" data-store="${item.store}" data-title="${safeTitle}" onclick="askAI(this)">✨ LLM 深度分析</button>
+                            </div>
+                            <div id="ai-box-${item.id}" class="ai-result-box"></div>
+                        </div>
+                    </div>`);
+            });
+        }
+
+        function filterCards() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const store = document.getElementById('storeFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const favFilter = document.getElementById('favFilter').value;
+            
+            renderCards(globalData.filter(i => 
+                i.title.toLowerCase().includes(search) && 
+                (store === "" || i.store === store) && 
+                (category === "" || i.category === category) &&
+                (favFilter === "" || i.is_favorite.toString() === favFilter)
+            ));
+        }
+
+        // 🌟 修改：升級為 store + title 傳遞邏輯
+        function toggleFav(btn) {
+            const isFav = btn.classList.contains('active');
+            const store = btn.getAttribute('data-store');
+            const title = btn.getAttribute('data-title');
+            const promoId = parseInt(btn.getAttribute('data-id'));
+
+            fetch('/api/favorites', { 
+                method: isFav ? 'DELETE' : 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ store: store, title: title }) 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    btn.classList.toggle('active');
+                    const nowFav = !isFav;
+                    btn.innerText = nowFav ? '❤️ 已收藏' : '🤍 收藏';
+                    
+                    // 同步更新記憶體中的狀態
+                    const item = globalData.find(i => i.id === promoId);
+                    if (item) item.is_favorite = nowFav ? 1 : 0;
+                }
+            }).catch(err => console.error("收藏失敗:", err));
+        }
+
+        // 🌟 修改：升級為透過 data- 屬性讀取，避免引號出錯
+        function askAI(btn) {
+            const id = btn.getAttribute('data-id');
+            const store = btn.getAttribute('data-store');
+            const title = btn.getAttribute('data-title');
+            const box = document.getElementById(`ai-box-${id}`);
+            
+            if (box.style.display === 'block') { box.style.display = 'none'; return; }
+            box.style.display = 'block'; 
+            box.innerHTML = '<span style="color:#888;">🤖 模型語意推論中...</span>';
+            
+            fetch('/api/analyze', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ title: title, store: store }) 
+            })
+            .then(res => res.json())
+            .then(data => box.innerHTML = data.analysis)
+            .catch(() => box.innerHTML = 'AI 運算發生錯誤。');
+        }
+    </script>
+</body>
+</html>
