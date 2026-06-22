@@ -5,7 +5,11 @@ import random
 import json
 from flask import Flask, render_template, jsonify, request
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+import os
 import google.generativeai as genai
+
+
 
 # 載入環境變數
 load_dotenv()
@@ -28,6 +32,33 @@ if API_KEY:
     # 推薦使用穩定且免費額度充足的 1.5-flash，避免 2.5 版頻繁出現 429 限制
     model = genai.GenerativeModel('gemini-2.5-flash-lite')
     HAS_AI = True
+
+# ==========================================
+# 0. 
+# 初始化全域變數，紀錄上次成功爬蟲的時間
+# 設為過去的時間，確保第一次請求時會觸發
+# ==========================================
+
+last_run_time = datetime(2000, 1, 1)
+
+@app.route('/api/update')
+def update_events():
+    global last_run_time
+    
+    # 邏輯：檢查距離上次更新是否已超過 20 小時 (約一天一次&報告前更新的時間差)
+    # 不設 24 小時是為了給予彈性空間
+    if datetime.now() - last_run_time < timedelta(hours=20):
+        return jsonify({"status": "skipped", "message": "尚未達到更新間隔"}), 200
+    
+    # 執行您的爬蟲與資料庫更新邏輯
+    data = fetch_all_events() # 您原本的爬蟲函數
+    
+    # ... (資料庫寫入邏輯) ...
+    #跳最後接last_run_time = datetime.now()
+    
+    
+
+
 
 # ==========================================
 # 1. 資料庫初始化 (升級收藏夾架構)
@@ -218,3 +249,6 @@ if __name__ == '__main__':
     init_db()
     print("✅ 系統啟動成功！請開啟瀏覽器訪問: [http://127.0.0.1:8080](http://127.0.0.1:8080)")
     app.run(host='0.0.0.0', port=8080, debug=False)
+
+last_run_time = datetime.now()
+    return jsonify({"status": "success", "count": len(data)})
