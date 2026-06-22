@@ -25,10 +25,14 @@ DB_FILE = 'events.db'
 API_KEY = os.environ.get("GEMINI_API_KEY")
 HAS_AI = False
 if API_KEY:
-    genai.configure(api_key=API_KEY)
-    # 推薦使用穩定版本
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    HAS_AI = True
+    try:
+        genai.configure(api_key=API_KEY)
+        # 這裡改用較為通用的名稱
+        model = genai.GenerativeModel('gemini-pro') 
+        HAS_AI = True
+    except Exception as e:
+        print(f"❌ Gemini 初始化失敗: {e}")
+        HAS_AI = False
 
 # 初始化全域變數，紀錄上次成功爬蟲的時間
 last_run_time = datetime(2000, 1, 1)
