@@ -45,20 +45,24 @@ last_run_time = datetime(2000, 1, 1)
 def update_events():
     global last_run_time
     
-    # 邏輯：檢查距離上次更新是否已超過 20 小時 (約一天一次&報告前更新的時間差)
-    # 不設 24 小時是為了給予彈性空間
+    # 1. 時間檢查 (檢查是否超過 20 小時)
     if datetime.now() - last_run_time < timedelta(hours=20):
         return jsonify({"status": "skipped", "message": "尚未達到更新間隔"}), 200
     
-    # 執行您的爬蟲與資料庫更新邏輯
-    data = fetch_all_events() # 您原本的爬蟲函數
+    # 2. 執行爬蟲與資料庫更新
+    data = fetch_all_events()
+    with sqlite3.connect(DB_FILE) as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM promotions")
+        for item in data:
+            c.execute("INSERT INTO promotions (store, title, img_url, link, category, expiry_date) VALUES (?, ?, ?, ?, ?, ?)",
+                      (item.get('store'), item.get('title'), item.get('img_url'), 
+                       item.get('link'), item.get('category'), item.get('expiry_date')))
+        conn.commit()
     
-    # ... (資料庫寫入邏輯) ...
-    #跳最後接last_run_time = datetime.now()
-    
-    
-
-
+    log_behavior("update_spiders", "ALL")
+    last_run_time = datetime.now()
+    return jsonify({"status": "success", "count": len(data)}) 
 
 # ==========================================
 # 1. 資料庫初始化 (升級收藏夾架構)
@@ -112,18 +116,18 @@ def fetch_all_events():
 def index():
     return render_template('index.html')
 
-@app.route('/api/update')
-def update_events():
-    data = fetch_all_events()
-    with sqlite3.connect(DB_FILE) as conn:
-        c = conn.cursor()
-        c.execute("DELETE FROM promotions")
-        for item in data:
-            c.execute("INSERT INTO promotions (store, title, img_url, link, category, expiry_date) VALUES (?, ?, ?, ?, ?, ?)",
-                      (item.get('store'), item.get('title'), item.get('img_url'), item.get('link'), item.get('category'), item.get('expiry_date')))
-        conn.commit()
-    log_behavior("update_spiders", "ALL")
-    return jsonify({"status": "success", "count": len(data)})
+#重複的@app.route('/api/update')
+#def update_events():
+#    data = fetch_all_events()
+#    with sqlite3.connect(DB_FILE) as conn:
+#        c = conn.cursor()
+#        c.execute("DELETE FROM promotions")
+#        for item in data:
+#            c.execute("INSERT INTO promotions (store, title, img_url, link, category, expiry_date) VALUES (?, ?, ?, ?, ?, ?)",
+#                      (item.get('store'), item.get('title'), item.get('img_url'), item.get('link'), item.get('category'), item.get('expiry_date')))
+#        conn.commit()
+#    log_behavior("update_spiders", "ALL")
+#    return jsonify({"status": "success", "count": len(data)})
 
 @app.route('/api/promotions')
 def get_promotions():
@@ -249,6 +253,3 @@ if __name__ == '__main__':
     init_db()
     print("✅ 系統啟動成功！請開啟瀏覽器訪問: [http://127.0.0.1:8080](http://127.0.0.1:8080)")
     app.run(host='0.0.0.0', port=8080, debug=False)
-
-last_run_time = datetime.now()
-    return jsonify({"status": "success", "count": len(data)})
