@@ -253,3 +253,11 @@ if __name__ == '__main__':
     init_db()
     print("✅ 系統啟動成功！請開啟瀏覽器訪問: [http://127.0.0.1:8080](http://127.0.0.1:8080)")
     app.run(host='0.0.0.0', port=8080, debug=False)
+
+# 在 app = Flask(__name__) 下方
+print("--- 系統正在載入 ---")
+try:
+    init_db()
+    print("--- 資料庫初始化成功 ---")
+except Exception as e:
+    print(f"--- 資料庫初始化失敗: {e} ---")
