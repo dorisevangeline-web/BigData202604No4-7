@@ -9,9 +9,12 @@ from selenium.webdriver.common.by import By
 from urllib.parse import urljoin
 
 # 目標關鍵字定義
-TARGET_KEYWORDS = ["咖啡", "拿鐵", "美式", "卡布奇諾", "冰品", "霜淇淋", "冰棒", "雪糕", "聖代", "飲料", "茶", "果汁", "汽水", "乳品", "鮮奶", "牛奶", "優酪乳", "奶茶", "啤酒", "生啤酒", "水果酒", "精釀", "發泡酒", "買一送一", "特價", "折", "超值"]
+TARGET_KEYWORDS = ["咖啡", "拿鐵", "美式", "卡布奇諾", "冰品", "霜淇淋", "冰棒", "雪糕", "聖代", "飲料", "茶", "果汁", "汽水", "乳品", "鮮奶", "牛奶", "優酪乳",
+                   "奶茶", "啤酒", "生啤酒", "水果酒", "精釀", "發泡酒", "買一送一", "特價", "折", "超值"]
 # 黑名單過濾關鍵字
-FILTER_KEYWORDS = ["icon", "logo", "arrow", "btn", "button", "footer", "header","中獎","街口支付","萊購物"]
+FILTER_KEYWORDS = ["icon", "logo", "arrow", "btn", "button", "footer", "header","中獎","街口支付","萊購物","聯邦","雲端列印","禮券"," 詐騙包裹申訴平台",
+                   "會員發票平台","貨件狀態查詢","代收查詢","digital-experience-img","點擊看更多","tailgrids","詐騙包裹查詢平台","7aa45432-9bb0-4452-a8c7-7cab4c164b6d"
+                  ,"1786cc5e-5e64-4a94-9473-49845fe22cd8","ec8e64d0-dddc-4cdc-8cd9-49c864c96671","a456f4ac-d55f-4af2-a9d8-a9e40edfd819","衛生紙"]
 
 # 驅動程式建立函式
 def create_driver():
@@ -47,6 +50,7 @@ def parse_category_and_expiry(title):
 def crawl_hilife():
     # 設定目標網址
     base_url = "https://www.hilife.com.tw/events_activity.aspx"
+    #base_url = "https://www.hilife.com.tw/page/activity/37"
     events = [] # 儲存資料陣列
     driver = create_driver() # 建立瀏覽器
     
@@ -83,8 +87,9 @@ def crawl_hilife():
                     # 嘗試抓取圖片資源
                     img_tag = tag.find("img")
                     img_url = ""
+                    img_url_arc =img_tag.get("alt")
                     if img_tag:
-                        img_url = (img_tag.get("data-src") or img_tag.get("data-original") or img_tag.get("src") or "").strip()
+                        img_url = (img_tag.get("data-src") or img_tag.get("data-original") or img_tag.get("src") or "" ).strip()
                     else:
                         # 處理寫在 css 的背景圖片
                         style_attr = tag.get("style", "")
@@ -96,7 +101,8 @@ def crawl_hilife():
                     img_url = urljoin(base_url, img_url)
 
                     # 過濾不要的元素或重複的圖片
-                    if any(word in img_url.lower() for word in FILTER_KEYWORDS) or "logo" in img_url.lower() or img_url in seen_images:
+                    if any(word in img_url.lower() for word in FILTER_KEYWORDS) or "logo" in img_url.lower() or img_url in seen_images or any(word in img_url_arc.lower() for word in FILTER_KEYWORDS):
+                    
                         continue
 
                     # 蒐集潛在標題資訊
